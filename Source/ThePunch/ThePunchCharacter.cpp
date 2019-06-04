@@ -11,6 +11,7 @@
 #include "Engine/World.h"
 #include "Engine/Engine.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
+#include "Components/SkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AThePunchCharacter
@@ -55,6 +56,26 @@ AThePunchCharacter::AThePunchCharacter()
 	{
 		MeleeFistAttackMontage = MeleeFistAttackMontageObject.Object;
 	}
+
+	RightFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightFistCollisionBox"));
+	RightFistCollisionBox->SetupAttachment(RootComponent);
+	RightFistCollisionBox->SetHiddenInGame(false);
+
+	LeftFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftFistCollisionBox"));
+	LeftFistCollisionBox->SetupAttachment(RootComponent);
+	LeftFistCollisionBox->SetHiddenInGame(false);
+}
+
+void AThePunchCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// attach collision components to sockets based on transformations definition
+	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+
+	LeftFistCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
+	RightFistCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
+
 }
 
 //////////////////////////////////////////////////////////////////////////
