@@ -59,7 +59,8 @@ class AThePunchCharacter : public ACharacter
 public:
 	AThePunchCharacter();
 
-	//void BeginPlay();
+	// Triggers Attack animation based on user input
+	void AttackInput();
 
 	// called when the game begins or when the player is spawned
 	virtual void BeginPlay() override;
@@ -71,6 +72,12 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	// Triggered when the player initiates an attack
+	void AttackStart();
+
+	// Triggered when the player ends an attack
+	void AttackEnd();
 
 protected:
 
@@ -105,12 +112,6 @@ protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
-
-	// Triggered when the player initiates an attack
-	void AttackStart();
-
-	// Triggered when the player ends an attack
-	void AttackEnd();
 
 private:
 	/** Returns CameraBoom subobject **/

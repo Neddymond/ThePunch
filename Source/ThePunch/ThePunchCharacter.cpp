@@ -57,13 +57,23 @@ AThePunchCharacter::AThePunchCharacter()
 		MeleeFistAttackMontage = MeleeFistAttackMontageObject.Object;
 	}
 
+	// create a Component(collision box) called "RightFistCollisionBox" 
 	RightFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightFistCollisionBox"));
-	RightFistCollisionBox->SetupAttachment(RootComponent);
-	RightFistCollisionBox->SetHiddenInGame(false);
 
+	// create a Component(collision box) called "LeftFistCollisionBox" 
 	LeftFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftFistCollisionBox"));
+
+	// Attach the collision box to the Root component of our character blueprint
+	RightFistCollisionBox->SetupAttachment(RootComponent);
 	LeftFistCollisionBox->SetupAttachment(RootComponent);
+
+	// make the collision box visible in the editor
+	RightFistCollisionBox->SetHiddenInGame(false);
 	LeftFistCollisionBox->SetHiddenInGame(false);
+
+	//Set the profile name of the collision box
+	RightFistCollisionBox->SetCollisionProfileName("NoCollision");
+	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
 }
 
 void AThePunchCharacter::BeginPlay()
@@ -73,6 +83,7 @@ void AThePunchCharacter::BeginPlay()
 	// attach collision components to sockets based on transformations definition
 	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
 
+	// Attach these components to the named sockets
 	LeftFistCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
 	RightFistCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
 
@@ -107,7 +118,7 @@ void AThePunchCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AThePunchCharacter::OnResetVR);
 
 	// Attack Functionality
-	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AThePunchCharacter::AttackStart);
+	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AThePunchCharacter::AttackInput);
 	PlayerInputComponent->BindAction("Attack", IE_Released, this, &AThePunchCharacter::AttackEnd);
 }
 
@@ -168,8 +179,8 @@ void AThePunchCharacter::MoveRight(float Value)
 	}
 }
 
-// play the attak animation
-void AThePunchCharacter::AttackStart()
+/// Triggers attack animation based on user input
+void AThePunchCharacter::AttackInput()
 {
 	// print this function on the screen, depending on the enum value
 	Log(ELogLevel::INFO, __FUNCTION__);
@@ -177,16 +188,31 @@ void AThePunchCharacter::AttackStart()
 	//generate a random number between 1 and 2
 	int MontageSectionIndex = rand() % 3 + 1;
 
-	// FString animation string
+	// Parse the random integer selected to string; concatenate with "start_" to get a name of an animation
 	FString MontageSection = "start_" + FString::FromInt(MontageSectionIndex);
 
+	// play random animation selected 
 	PlayAnimMontage(MeleeFistAttackMontage, 1.0f, FName(*MontageSection));
+}
+
+void AThePunchCharacter::AttackStart()
+{
+	// print this function on the screen, depending on the enum value
+	Log(ELogLevel::INFO, __FUNCTION__);
+
+	// set the profile name of the collision box when the attack animation starts
+	LeftFistCollisionBox->SetCollisionProfileName("Weapon");
+	RightFistCollisionBox->SetCollisionProfileName("Weapon");
 }
 
 // Stop Attack Animation
 void AThePunchCharacter::AttackEnd()
 {
 	Log(ELogLevel::INFO, __FUNCTION__);
+
+	// Reset the profile name of the collision box when the attack animation ends
+	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
+	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
 }
 
 void AThePunchCharacter::Log(ELogLevel LogLevel, FString Message)
