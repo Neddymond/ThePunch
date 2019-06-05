@@ -71,9 +71,13 @@ AThePunchCharacter::AThePunchCharacter()
 	RightFistCollisionBox->SetHiddenInGame(false);
 	LeftFistCollisionBox->SetHiddenInGame(false);
 
-	//Set the profile name of the collision box
+	//Set the initial profile name of the collision box
 	RightFistCollisionBox->SetCollisionProfileName("NoCollision");
 	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
+
+	// Turn off Hit Events on collision
+	LeftFistCollisionBox->SetNotifyRigidBodyCollision(false);
+	RightFistCollisionBox->SetNotifyRigidBodyCollision(false);
 }
 
 void AThePunchCharacter::BeginPlay()
@@ -87,6 +91,8 @@ void AThePunchCharacter::BeginPlay()
 	LeftFistCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
 	RightFistCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
 
+	LeftFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
+	RightFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -203,6 +209,10 @@ void AThePunchCharacter::AttackStart()
 	// set the profile name of the collision box when the attack animation starts
 	LeftFistCollisionBox->SetCollisionProfileName("Weapon");
 	RightFistCollisionBox->SetCollisionProfileName("Weapon");
+
+	// Generate Hit Events on collision
+	LeftFistCollisionBox->SetNotifyRigidBodyCollision(true);
+	RightFistCollisionBox->SetNotifyRigidBodyCollision(true);
 }
 
 // Stop Attack Animation
@@ -213,8 +223,16 @@ void AThePunchCharacter::AttackEnd()
 	// Reset the profile name of the collision box when the attack animation ends
 	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
 	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
+
+	// Turn off Hit Events on collision
+	LeftFistCollisionBox->SetNotifyRigidBodyCollision(false);
+	RightFistCollisionBox->SetNotifyRigidBodyCollision(false);
 }
 
+void AThePunchCharacter::OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+{
+	Log(ELogLevel::WARNING, Hit.GetActor()->GetName());
+}
 void AThePunchCharacter::Log(ELogLevel LogLevel, FString Message)
 {
 	Log(LogLevel, Message, ELogOutput::ALL);

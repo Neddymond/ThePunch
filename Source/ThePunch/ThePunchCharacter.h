@@ -79,6 +79,10 @@ public:
 	// Triggered when the player ends an attack
 	void AttackEnd();
 
+	//Triggered when the collision hit event fires between our weapon and enemy entities
+	UFUNCTION()
+	void OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
 protected:
 
 	/** Resets HMD orientation in VR. */
