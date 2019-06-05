@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Components/BoxComponent.h"
+#include "Components/AudioComponent.h"
 #include "ThePunchCharacter.generated.h"
 
 UENUM(BlueprintType)
@@ -48,6 +49,10 @@ class AThePunchCharacter : public ACharacter
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* MeleeFistAttackMontage;
 
+	// load sound cue
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Audio, meta = (AllowPrivateAccess = "true"))
+	class USoundCue* PunchSoundCue;
+		
 	// Right fist collision box
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision, meta = (AllowPrivateAccess = "true"))
 	class UBoxComponent* RightFistCollisionBox;
@@ -83,6 +88,8 @@ public:
 	UFUNCTION()
 	void OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+
+
 protected:
 
 	/** Resets HMD orientation in VR. */
@@ -117,11 +124,14 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	// End of APawn interface
 
-private:
+public:
 	/** Returns CameraBoom subobject **/
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+private:
+	UAudioComponent* PunchAudioComponent;
 
 	/**
 	* Log - prints a message to all the log outputs with a specific color
@@ -138,4 +148,3 @@ private:
 	*/
 	void Log(ELogLevel LogLevel, FString Message, ELogOutput LogOutput);
 };
-

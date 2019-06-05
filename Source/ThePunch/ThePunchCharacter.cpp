@@ -12,6 +12,7 @@
 #include "Engine/Engine.h"
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Sound/SoundCue.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AThePunchCharacter
@@ -57,6 +58,21 @@ AThePunchCharacter::AThePunchCharacter()
 		MeleeFistAttackMontage = MeleeFistAttackMontageObject.Object;
 	}
 
+	// Find our Sound cue
+	static ConstructorHelpers::FObjectFinder<USoundCue> PunchSoundCueObject(TEXT("SoundCue'/Game/Resources/Audio/PunchSoundCue.PunchSoundCue'"));
+	
+	// if successful, pass it to punchSoundCue
+	if (PunchSoundCueObject.Succeeded())
+	{
+		PunchSoundCue = PunchSoundCueObject.Object;
+
+		//create a component(Audio component) called "PunchAudioComponent"
+		PunchAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("PunchAudioComponent"));
+		
+		// Attach to Root component of the character
+		PunchAudioComponent->SetupAttachment(RootComponent);
+	}
+
 	// create a Component(collision box) called "RightFistCollisionBox" 
 	RightFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightFistCollisionBox"));
 
@@ -93,6 +109,13 @@ void AThePunchCharacter::BeginPlay()
 
 	LeftFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
 	RightFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
+
+	// if PunchAudioComponent and PunchSoundCue is not null
+	if (PunchAudioComponent && PunchSoundCue)
+	{
+		// Attach PunchSoundCue to the PunchAudioComponent
+		PunchAudioComponent->SetSound(PunchSoundCue);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -232,6 +255,16 @@ void AThePunchCharacter::AttackEnd()
 void AThePunchCharacter::OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	Log(ELogLevel::WARNING, Hit.GetActor()->GetName());
+
+	// if PunchAudioComponent is not null and if Audio is not playing
+	if (PunchAudioComponent && !PunchAudioComponent->IsPlaying())
+	{
+		// Default pitch = 1; 
+		//Set random pitch btw 1 and 1.3
+		PunchAudioComponent->SetPitchMultiplier(FMath::RandRange(1.0f, 1.3f));
+		// play Audio
+		PunchAudioComponent->Play(0.f);
+	}
 }
 void AThePunchCharacter::Log(ELogLevel LogLevel, FString Message)
 {
