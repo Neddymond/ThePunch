@@ -6,7 +6,46 @@
 #include "GameFramework/Character.h"
 #include "Components/BoxComponent.h"
 #include "Components/AudioComponent.h"
+
+#include "Engine/DataTable.h"
+
 #include "ThePunchCharacter.generated.h"
+
+USTRUCT(BlueprintType)
+struct FPlayerAttackMontage : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	// Melee Fist Attack Montage
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		UAnimMontage* Montage;
+
+	// amount of start sections within our montage
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		int32 AnimSectionCount;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+		FString Description;
+};
+
+USTRUCT(BlueprintType)
+struct FMeleeCollisionProfile
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FName Enabled;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+		FName Disabled;
+
+	// default constructor
+	FMeleeCollisionProfile()
+	{
+		Enabled = FName(TEXT("Weapon"));
+		Disabled = FName(TEXT("NoCollision"));
+	}
+};
 
 UENUM(BlueprintType)
 enum class ELogLevel : uint8 
@@ -29,7 +68,8 @@ enum class ELogOutput : uint8
 UENUM(BlueprintType)
 enum class EAttackType : uint8 
 {
-	MELEE_FIST			UMETA(DisplayName = "Melee - Fist")
+	MELEE_FIST			UMETA(DisplayName = "Melee - Fist"),
+	MELEE_KICK			UMETA(DisplayName = "Melee - Kick")
 };
 
 UCLASS(config=Game)
@@ -49,20 +89,30 @@ class AThePunchCharacter : public ACharacter
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* MeleeFistAttackMontage;
 
+	//melee fist data Table
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
+	class UDataTable* PlayerAttackDataTable;
+
 	// load sound cue
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Audio, meta = (AllowPrivateAccess = "true"))
 	class USoundCue* PunchSoundCue;
 		
 	// Right fist collision box
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision, meta = (AllowPrivateAccess = "true"))
-	class UBoxComponent* RightFistCollisionBox;
+	class UBoxComponent* RightMeleeCollisionBox;
 
 	//Left Fist collision box
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision, meta = (AllowPrivateAccess = "true"))
-	class UBoxComponent* LeftFistCollisionBox;
+	class UBoxComponent* LeftMeleeCollisionBox;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
+		float AnimationVariable;
 
 public:
 	AThePunchCharacter();
+
+	void PunchAttack();
+	void KickAttack();
 
 	// Triggers Attack animation based on user input
 	void AttackInput();
@@ -130,8 +180,16 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
+	UAudioComponent* PunchThrowAudioComponent;
+
 private:
 	UAudioComponent* PunchAudioComponent;
+
+	FPlayerAttackMontage* AttackMontage;
+
+	FMeleeCollisionProfile MeleeCollisionProfile; 
+
+	EAttackType CurrentAttack;
 
 	/**
 	* Log - prints a message to all the log outputs with a specific color

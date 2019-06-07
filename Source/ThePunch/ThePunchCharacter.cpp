@@ -51,11 +51,18 @@ AThePunchCharacter::AThePunchCharacter()
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 
-	// load our animation montage
+	// load Melee Fist Attack Animation montage
 	static ConstructorHelpers::FObjectFinder<UAnimMontage>MeleeFistAttackMontageObject(TEXT("AnimMontage'/Game/Resources/Animations/Melee_Fist_Attack.Melee_Fist_Attack'"));
 	if (MeleeFistAttackMontageObject.Succeeded())
 	{
 		MeleeFistAttackMontage = MeleeFistAttackMontageObject.Object;
+	}
+
+	// load Melee Attack Data Table 
+	static ConstructorHelpers::FObjectFinder<UDataTable>PlayerAttackMontageDataObject(TEXT("DataTable'/Game/Resources/DataTables/PlayerAttackMontageDataTable.PlayerAttackMontageDataTable'"));
+	if (PlayerAttackMontageDataObject.Succeeded())
+	{
+		PlayerAttackDataTable = PlayerAttackMontageDataObject.Object;
 	}
 
 	// Find our Sound cue
@@ -73,27 +80,27 @@ AThePunchCharacter::AThePunchCharacter()
 		PunchAudioComponent->SetupAttachment(RootComponent);
 	}
 
-	// create a Component(collision box) called "RightFistCollisionBox" 
-	RightFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightFistCollisionBox"));
+	// create a Component(collision box) called "RightMeleeCollisionBox" 
+	RightMeleeCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightMeleeCollisionBox"));
 
 	// create a Component(collision box) called "LeftFistCollisionBox" 
-	LeftFistCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftFistCollisionBox"));
+	LeftMeleeCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftMeleeCollisionBox"));
 
 	// Attach the collision box to the Root component of our character blueprint
-	RightFistCollisionBox->SetupAttachment(RootComponent);
-	LeftFistCollisionBox->SetupAttachment(RootComponent);
+	RightMeleeCollisionBox->SetupAttachment(RootComponent);
+	LeftMeleeCollisionBox->SetupAttachment(RootComponent);
 
 	// make the collision box visible in the editor
-	RightFistCollisionBox->SetHiddenInGame(false);
-	LeftFistCollisionBox->SetHiddenInGame(false);
+	RightMeleeCollisionBox->SetHiddenInGame(false);
+	LeftMeleeCollisionBox->SetHiddenInGame(false);
 
 	//Set the initial profile name of the collision box
-	RightFistCollisionBox->SetCollisionProfileName("NoCollision");
-	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
+	RightMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Disabled);
+	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Disabled);
 
 	// Turn off Hit Events on collision
-	LeftFistCollisionBox->SetNotifyRigidBodyCollision(false);
-	RightFistCollisionBox->SetNotifyRigidBodyCollision(false);
+	LeftMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
+	RightMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
 }
 
 void AThePunchCharacter::BeginPlay()
@@ -104,11 +111,11 @@ void AThePunchCharacter::BeginPlay()
 	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
 
 	// Attach these components to the named sockets
-	LeftFistCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
-	RightFistCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
+	LeftMeleeCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
+	RightMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
 
-	LeftFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
-	RightFistCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
+	LeftMeleeCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
+	RightMeleeCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
 
 	// if PunchAudioComponent and PunchSoundCue is not null
 	if (PunchAudioComponent && PunchSoundCue)
@@ -150,7 +157,6 @@ void AThePunchCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AThePunchCharacter::AttackInput);
 	PlayerInputComponent->BindAction("Attack", IE_Released, this, &AThePunchCharacter::AttackEnd);
 }
-
 
 void AThePunchCharacter::OnResetVR()
 {
@@ -211,17 +217,26 @@ void AThePunchCharacter::MoveRight(float Value)
 /// Triggers attack animation based on user input
 void AThePunchCharacter::AttackInput()
 {
-	// print this function on the screen, depending on the enum value
-	Log(ELogLevel::INFO, __FUNCTION__);
+	if (PlayerAttackDataTable)
+	{
+		static const FString ContextString(TEXT("Player Attack Montage Context"));
+		FPlayerAttackMontage* AttackMontage = PlayerAttackDataTable->FindRow<FPlayerAttackMontage>(FName(TEXT("Punch_1")), ContextString, true);
 
-	//generate a random number between 1 and 2
-	int MontageSectionIndex = rand() % 3 + 1;
+		if (AttackMontage)
+		{
+			// print this function on the screen, depending on the enum value
+			Log(ELogLevel::INFO, __FUNCTION__);
 
-	// Parse the random integer selected to string; concatenate with "start_" to get a name of an animation
-	FString MontageSection = "start_" + FString::FromInt(MontageSectionIndex);
+			//generate a random number between 1 and whatever is defined in the data table for this montage
+			int MontageSectionIndex = rand() % AttackMontage->AnimSectionCount + 1;
 
-	// play random animation selected 
-	PlayAnimMontage(MeleeFistAttackMontage, 1.0f, FName(*MontageSection));
+			// Parse the random integer selected to string; concatenate with "start_" to get a name of an animation
+			FString MontageSection = "start_" + FString::FromInt(MontageSectionIndex);
+
+			// play random animation selected 
+			PlayAnimMontage(AttackMontage->Montage, 1.0f, FName(*MontageSection));
+		}
+	}
 }
 
 void AThePunchCharacter::AttackStart()
@@ -230,12 +245,12 @@ void AThePunchCharacter::AttackStart()
 	Log(ELogLevel::INFO, __FUNCTION__);
 
 	// set the profile name of the collision box when the attack animation starts
-	LeftFistCollisionBox->SetCollisionProfileName("Weapon");
-	RightFistCollisionBox->SetCollisionProfileName("Weapon");
+	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Enabled);
+	RightMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Enabled);
 
 	// Generate Hit Events on collision
-	LeftFistCollisionBox->SetNotifyRigidBodyCollision(true);
-	RightFistCollisionBox->SetNotifyRigidBodyCollision(true);
+	LeftMeleeCollisionBox->SetNotifyRigidBodyCollision(true);
+	RightMeleeCollisionBox->SetNotifyRigidBodyCollision(true);
 }
 
 // Stop Attack Animation
@@ -244,12 +259,12 @@ void AThePunchCharacter::AttackEnd()
 	Log(ELogLevel::INFO, __FUNCTION__);
 
 	// Reset the profile name of the collision box when the attack animation ends
-	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
-	LeftFistCollisionBox->SetCollisionProfileName("NoCollision");
+	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Disabled);
+	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Disabled);
 
 	// Turn off Hit Events on collision
-	LeftFistCollisionBox->SetNotifyRigidBodyCollision(false);
-	RightFistCollisionBox->SetNotifyRigidBodyCollision(false);
+	LeftMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
+	RightMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
 }
 
 void AThePunchCharacter::OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
