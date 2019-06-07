@@ -115,7 +115,7 @@ public:
 	void KickAttack();
 
 	// Triggers Attack animation based on user input
-	void AttackInput();
+	void AttackInput(EAttackType AttackType);
 
 	// called when the game begins or when the player is spawned
 	virtual void BeginPlay() override;
@@ -138,7 +138,17 @@ public:
 	UFUNCTION()
 	void OnAttackHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
+	// boolean that tells us if we have to branch oour animation blueprint paths
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	bool GetIsAnimationBlended();
 
+	/** controls if the keyboard responds to user input **/
+	UFUNCTION(BlueprintCallable, Category = Animation)
+		void SetIsKeyboardEnabled(bool Enabled);
+
+	/** returns the current attack that the player is perfoming **/
+	UFUNCTION(BlueprintCallable, Category = Animation)
+	EAttackType GetCurrentAttack();
 
 protected:
 
@@ -185,11 +195,19 @@ public:
 private:
 	UAudioComponent* PunchAudioComponent;
 
+	// structure for PlayerAttackMontage Data Table
 	FPlayerAttackMontage* AttackMontage;
 
+	// Collision Profile object; Enabled = "Weapon", Disabled = "NoCollision"
 	FMeleeCollisionProfile MeleeCollisionProfile; 
 
+	// Attack Type object
 	EAttackType CurrentAttack;
+
+	bool IsAnimationBlended;
+
+	bool IsKeyboardEnabled;
+
 
 	/**
 	* Log - prints a message to all the log outputs with a specific color

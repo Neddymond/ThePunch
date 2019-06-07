@@ -24,6 +24,22 @@ void UAttackStartNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 
 }
 
+void UAttackStartNotifyState::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, float TotalDuration)
+{
+	AThePunchCharacter* player = Cast<AThePunchCharacter>(MeshComp->GetOwner());
+
+	if (MeshComp != NULL && MeshComp->GetOwner() != NULL)
+	{
+		if (player != NULL)
+		{
+			if (player->GetCurrentAttack() == EAttackType::MELEE_KICK)
+			{
+				player->SetIsKeyboardEnabled(false);
+			}
+		}
+	}
+}
+
 ///The exact time the attack animation ended
 void UAttackStartNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation)
 {
@@ -36,6 +52,8 @@ void UAttackStartNotifyState::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimS
 		if (player != NULL)
 		{
 			player->AttackEnd();
+
+			player->SetIsKeyboardEnabled(true);
 		}
 	}
 

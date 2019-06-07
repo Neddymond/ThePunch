@@ -107,13 +107,6 @@ void AThePunchCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// attach collision components to sockets based on transformations definition
-	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
-
-	// Attach these components to the named sockets
-	LeftMeleeCollisionBox->AttachToComponent(GetMesh(),  AttachmentRules, "fist_l_collision");
-	RightMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
-
 	LeftMeleeCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
 	RightMeleeCollisionBox->OnComponentHit.AddDynamic(this, &AThePunchCharacter::OnAttackHit);
 
@@ -154,8 +147,8 @@ void AThePunchCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AThePunchCharacter::OnResetVR);
 
 	// Attack Functionality
-	PlayerInputComponent->BindAction("Attack", IE_Pressed, this, &AThePunchCharacter::AttackInput);
-	PlayerInputComponent->BindAction("Attack", IE_Released, this, &AThePunchCharacter::AttackEnd);
+	PlayerInputComponent->BindAction("Punch", IE_Pressed, this, &AThePunchCharacter::PunchAttack);
+	PlayerInputComponent->BindAction("Kick", IE_Released, this, &AThePunchCharacter::KickAttack);
 }
 
 void AThePunchCharacter::OnResetVR()
@@ -187,7 +180,7 @@ void AThePunchCharacter::LookUpAtRate(float Rate)
 
 void AThePunchCharacter::MoveForward(float Value)
 {
-	if ((Controller != NULL) && (Value != 0.0f))
+	if ((Controller != NULL) && (Value != 0.0f) && IsKeyboardEnabled)
 	{
 		// find out which way is forward
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -201,7 +194,7 @@ void AThePunchCharacter::MoveForward(float Value)
 
 void AThePunchCharacter::MoveRight(float Value)
 {
-	if ( (Controller != NULL) && (Value != 0.0f) )
+	if ( (Controller != NULL) && (Value != 0.0f) && IsKeyboardEnabled)
 	{
 		// find out which way is right
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -214,13 +207,80 @@ void AThePunchCharacter::MoveRight(float Value)
 	}
 }
 
-/// Triggers attack animation based on user input
-void AThePunchCharacter::AttackInput()
+bool AThePunchCharacter::GetIsAnimationBlended()
 {
+	return IsAnimationBlended;
+}
+
+void AThePunchCharacter::SetIsKeyboardEnabled(bool Enabled)
+{
+	IsKeyboardEnabled = Enabled;
+}
+
+EAttackType AThePunchCharacter::GetCurrentAttack()
+{
+	return CurrentAttack;
+}
+
+// Triggers Punch Attack Animation
+void AThePunchCharacter::PunchAttack()
+{
+	AttackInput(EAttackType::MELEE_FIST);
+}
+
+// Triggers Kick Attack Animation
+void AThePunchCharacter::KickAttack()
+{
+	AttackInput(EAttackType::MELEE_KICK);
+}
+
+/// Triggers attack animation based on user input
+void AThePunchCharacter::AttackInput(EAttackType AttackType)
+{
+	Log(ELogLevel::INFO, __FUNCTION__); 
+
 	if (PlayerAttackDataTable)
 	{
 		static const FString ContextString(TEXT("Player Attack Montage Context"));
-		FPlayerAttackMontage* AttackMontage = PlayerAttackDataTable->FindRow<FPlayerAttackMontage>(FName(TEXT("Punch_1")), ContextString, true);
+
+		// Row Name+
+		FName RowKey;
+
+		CurrentAttack = AttackType;
+
+		// Attach collision components to sockets based on transformations definition
+		const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+
+		switch (AttackType)
+		{
+		case EAttackType::MELEE_FIST:
+			RowKey = FName(TEXT("Punch"));
+
+			// Attach these components to the named sockets
+			LeftMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_l_collision");
+			RightMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "fist_r_collision");
+
+			IsAnimationBlended = true;
+
+			IsKeyboardEnabled = true;
+			break;
+		case EAttackType::MELEE_KICK:
+			RowKey = FName(TEXT("Kick"));
+
+			// Attach these components to the named sockets
+			LeftMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "foot_l_collision");
+			RightMeleeCollisionBox->AttachToComponent(GetMesh(), AttachmentRules, "foot_r_collision");
+
+			IsAnimationBlended = false;
+
+			IsKeyboardEnabled = false;
+			break;
+		default:
+			IsAnimationBlended = true;
+			break;
+		}
+
+		FPlayerAttackMontage* AttackMontage = PlayerAttackDataTable->FindRow<FPlayerAttackMontage>(RowKey, ContextString, true);
 
 		if (AttackMontage)
 		{
