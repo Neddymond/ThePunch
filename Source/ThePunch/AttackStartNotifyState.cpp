@@ -11,16 +11,6 @@ void UAttackStartNotifyState::NotifyBegin(USkeletalMeshComponent* MeshComp, UAni
 {
 	GEngine->AddOnScreenDebugMessage(-1, 4.5f, FColor::Magenta, __FUNCTION__);
 
-	if (MeshComp != NULL && MeshComp->GetWorld() != NULL)
-	{
-		AThePunchCharacter* player = Cast<AThePunchCharacter>(MeshComp->GetOwner());
-
-		if (player != NULL && !player->PunchThrowAudioComponent->IsPlaying())
-		{
-			player->PunchThrowAudioComponent->Play(0.f);
-		}
-	}
-
 	// check if the mesh is empty
 	if (MeshComp != NULL && MeshComp->GetOwner() != NULL)
 	{
