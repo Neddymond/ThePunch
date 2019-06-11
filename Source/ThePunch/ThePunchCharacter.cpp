@@ -80,6 +80,21 @@ AThePunchCharacter::AThePunchCharacter()
 		PunchAudioComponent->SetupAttachment(RootComponent);
 	}
 
+	// Find our Punch Throw Sound cue
+	static ConstructorHelpers::FObjectFinder<USoundCue> PunchThrowSoundCueObject(TEXT("SoundCue'/Game/Resources/Audio/PunchThrowSoundCue.PunchThrowSoundCue'"));
+
+	// if successful, pass it to punchSoundCue
+	if (PunchThrowSoundCueObject.Succeeded())
+	{
+		PunchThrowSoundCue = PunchThrowSoundCueObject.Object;
+
+		//create a component(Audio component) called "PunchAudioComponent"
+		PunchThrowAudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("PunchThrowAudioComponent"));
+
+		// Attach to Root component of the character
+		PunchThrowAudioComponent->SetupAttachment(RootComponent);
+	}
+
 	// create a Component(collision box) called "RightMeleeCollisionBox" 
 	RightMeleeCollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightMeleeCollisionBox"));
 
@@ -115,6 +130,13 @@ void AThePunchCharacter::BeginPlay()
 	{
 		// Attach PunchSoundCue to the PunchAudioComponent
 		PunchAudioComponent->SetSound(PunchSoundCue);
+	}
+
+	// if PunchThrowAudioComponent and PunchThrowSoundCue is not null
+	if (PunchThrowAudioComponent && PunchThrowSoundCue)
+	{
+		// Attach PunchThrowSoundCue to the PunchThrowAudioComponent
+		PunchThrowAudioComponent->SetSound(PunchThrowSoundCue);
 	}
 }
 

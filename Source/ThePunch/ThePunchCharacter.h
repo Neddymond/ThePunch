@@ -96,6 +96,10 @@ class AThePunchCharacter : public ACharacter
 	// load sound cue
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Audio, meta = (AllowPrivateAccess = "true"))
 	class USoundCue* PunchSoundCue;
+
+	// load sound cue
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Audio, meta = (AllowPrivateAccess = "true"))
+	class USoundCue* PunchThrowSoundCue;
 		
 	// Right fist collision box
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision, meta = (AllowPrivateAccess = "true"))
@@ -191,6 +195,7 @@ public:
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
 	UAudioComponent* PunchThrowAudioComponent;
+
 
 private:
 	UAudioComponent* PunchAudioComponent;
