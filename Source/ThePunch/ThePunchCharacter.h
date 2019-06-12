@@ -11,6 +11,8 @@
 
 #include "ThePunchCharacter.generated.h"
 
+
+
 USTRUCT(BlueprintType)
 struct FPlayerAttackMontage : public FTableRowBase
 {
@@ -66,6 +68,15 @@ enum class ELogOutput : uint8
 };
 
 UENUM(BlueprintType)
+enum class ELineTraceType : uint8
+{
+	CAMERA_SINGLE	UMETA(DisplayName = "Camera - Single line"),
+	PLAYER_SINGLE	UMETA(DisplayName = "Player - Single line"),
+	CAMERA_SPREAD	UMETA(DisplayName = "Camera - Spread"),
+	PLAYER_SPREAD	UMETA(DisplayName = "Player - SPread")
+};
+
+UENUM(BlueprintType)
 enum class EAttackType : uint8 
 {
 	MELEE_FIST			UMETA(DisplayName = "Melee - Fist"),
@@ -109,8 +120,7 @@ class AThePunchCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision, meta = (AllowPrivateAccess = "true"))
 	class UBoxComponent* LeftMeleeCollisionBox;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Animation, meta = (AllowPrivateAccess = "true"))
-		float AnimationVariable;
+
 
 public:
 	AThePunchCharacter();
@@ -153,6 +163,17 @@ public:
 	/** returns the current attack that the player is perfoming **/
 	UFUNCTION(BlueprintCallable, Category = Animation)
 	EAttackType GetCurrentAttack();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Line Trace")
+		ELineTraceType LineTraceType;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Line Trace")
+		float LineTraceDistance;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Line Trace")
+		float LineTraceSpread;
+
+	void FireLineTrace();
 
 protected:
 

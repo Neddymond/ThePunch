@@ -13,6 +13,8 @@
 #include "Runtime/CoreUObject/Public/UObject/ConstructorHelpers.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Sound/SoundCue.h"
+#include "Animation/AnimInstance.h"
+#include "Public/DrawDebugHelpers.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AThePunchCharacter
@@ -116,6 +118,13 @@ AThePunchCharacter::AThePunchCharacter()
 	// Turn off Hit Events on collision
 	LeftMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
 	RightMeleeCollisionBox->SetNotifyRigidBodyCollision(false);
+
+	//Set animation blending on by defualt
+	IsAnimationBlended = true;
+
+	LineTraceType = ELineTraceType::PLAYER_SPREAD;
+	LineTraceDistance = 100.f;
+	LineTraceSpread = 10.f;
 }
 
 void AThePunchCharacter::BeginPlay()
@@ -171,6 +180,9 @@ void AThePunchCharacter::SetupPlayerInputComponent(class UInputComponent* Player
 	// Attack Functionality
 	PlayerInputComponent->BindAction("Punch", IE_Pressed, this, &AThePunchCharacter::PunchAttack);
 	PlayerInputComponent->BindAction("Kick", IE_Released, this, &AThePunchCharacter::KickAttack);
+
+	// Line Trace
+   PlayerInputComponent->BindAction("FireLineTrace", IE_Pressed, this, &AThePunchCharacter::FireLineTrace);
 }
 
 void AThePunchCharacter::OnResetVR()
@@ -259,7 +271,7 @@ void AThePunchCharacter::KickAttack()
 /// Triggers attack animation based on user input
 void AThePunchCharacter::AttackInput(EAttackType AttackType)
 {
-	Log(ELogLevel::INFO, __FUNCTION__); 
+	//Log(ELogLevel::INFO, __FUNCTION__); 
 
 	if (PlayerAttackDataTable)
 	{
@@ -321,10 +333,11 @@ void AThePunchCharacter::AttackInput(EAttackType AttackType)
 	}
 }
 
+
 void AThePunchCharacter::AttackStart()
 {
 	// print this function on the screen, depending on the enum value
-	Log(ELogLevel::INFO, __FUNCTION__);
+	//Log(ELogLevel::INFO, __FUNCTION__);
 
 	// set the profile name of the collision box when the attack animation starts
 	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Enabled);
@@ -338,7 +351,7 @@ void AThePunchCharacter::AttackStart()
 // Stop Attack Animation
 void AThePunchCharacter::AttackEnd()
 {
-	Log(ELogLevel::INFO, __FUNCTION__);
+	//Log(ELogLevel::INFO, __FUNCTION__);
 
 	// Reset the profile name of the collision box when the attack animation ends
 	LeftMeleeCollisionBox->SetCollisionProfileName(MeleeCollisionProfile.Disabled);
@@ -356,6 +369,11 @@ void AThePunchCharacter::OnAttackHit(UPrimitiveComponent* HitComponent, AActor* 
 	// if PunchAudioComponent is not null and if Audio is not playing
 	if (PunchAudioComponent && !PunchAudioComponent->IsPlaying())
 	{
+		//activate the sound if it has not been already activated
+		if (!PunchAudioComponent->IsActive())
+		{
+			PunchAudioComponent->Activate(true);
+		}
 		// Default pitch = 1; 
 		//Set random pitch btw 1 and 1.3
 		PunchAudioComponent->SetPitchMultiplier(FMath::RandRange(1.0f, 1.3f));
@@ -366,6 +384,74 @@ void AThePunchCharacter::OnAttackHit(UPrimitiveComponent* HitComponent, AActor* 
 void AThePunchCharacter::Log(ELogLevel LogLevel, FString Message)
 {
 	Log(LogLevel, Message, ELogOutput::ALL);
+}
+
+void AThePunchCharacter::FireLineTrace()
+{
+	Log(ELogLevel::WARNING, __FUNCTION__);
+
+	FVector Start;
+	FVector End;
+
+	const float Spread = FMath::DegreesToRadians(LineTraceSpread * 0.5);
+
+	if (LineTraceType == ELineTraceType::CAMERA_SINGLE || LineTraceType == ELineTraceType::CAMERA_SPREAD)
+	{
+		// get camera point of view
+		FVector CameraLocation = FollowCamera->GetComponentLocation();
+		FRotator CameraRotation = FollowCamera->GetComponentRotation();
+
+		Start = CameraLocation;
+
+		if (LineTraceType == ELineTraceType::CAMERA_SPREAD)
+		{
+			End = CameraLocation + FMath::VRandCone(CameraRotation.Vector(), Spread, Spread) * LineTraceDistance;
+		}
+		else
+		{
+			// Ending location where the camera is facing based on the line distance
+			End = CameraLocation + (CameraRotation.Vector() * LineTraceDistance);
+		}
+	}
+	else if (LineTraceType == ELineTraceType::PLAYER_SINGLE || LineTraceType == ELineTraceType::PLAYER_SPREAD)
+	{
+		FVector PlayerEyesLocation;
+		FRotator PlayerEyesRotation;
+
+		GetActorEyesViewPoint(PlayerEyesLocation, PlayerEyesRotation);
+
+		Start = PlayerEyesLocation;
+
+		if (LineTraceType == ELineTraceType::PLAYER_SPREAD)
+		{
+			End = PlayerEyesLocation + FMath::VRandCone(PlayerEyesRotation.Vector(), Spread, Spread) * LineTraceDistance;
+		}
+		else
+		{
+			End = PlayerEyesLocation + (PlayerEyesRotation.Vector() * LineTraceDistance);
+		}
+	}
+
+	FHitResult HitDetails = FHitResult(ForceInit);
+
+	FCollisionQueryParams TraceParams(FName(TEXT("LineTraceParameters")), true, NULL);
+	TraceParams.bTraceComplex = true;
+	TraceParams.bReturnPhysicalMaterial = true;
+	bool bIsHit = GetWorld()->LineTraceSingleByChannel(HitDetails, Start, End, ECC_EngineTraceChannel3, TraceParams);
+
+	if (bIsHit)
+	{
+		Log(ELogLevel::INFO, "We hit something");
+		DrawDebugLine(GetWorld(), Start, End, FColor::Green, false, 5.f, ECC_WorldStatic, 1.f);
+		Log(ELogLevel::WARNING, HitDetails.Actor->GetName());
+		Log(ELogLevel::DEBUG, FString::SanitizeFloat(HitDetails.Distance));
+		DrawDebugBox(GetWorld(), HitDetails.ImpactPoint, FVector(2.f, 2.f, 2.f), FColor::Blue, false, 5.f, ECC_WorldStatic, 1.f);
+	}
+	else
+	{
+		Log(ELogLevel::WARNING, "We hit nothing");
+		DrawDebugLine(GetWorld(), Start, End, FColor::Purple, false, 5.f, ECC_WorldStatic, 1.f);
+	}
 }
 
 void AThePunchCharacter::Log(ELogLevel LogLevel, FString Message, ELogOutput LogOutput)
